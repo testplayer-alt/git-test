@@ -1,133 +1,117 @@
 import Header from "./header";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import Link from "next/link";
+
 export default function Home() {
-  let [Updata, SetUpdata] = useState(false);
-  let [items, Setitems] = useState<any[]>([]); // itemsの初期値を空配列に設定
+  let [items, Setitems] = useState<any[]>([]); // 表示されるアイテムのリスト
+  const [itemdata, setitemdata] = useState<any[]>([]); // Firebaseから取得したアイテムデータ
 
-  let item: any = {
-    "000": {
-      "id": "000",
-      "name": "item00",
-      "money": "100",
-      "num": 1
-    },
-    "001": {
-      "id": "001",
-      "name": "item01",
-      "money": "200",
-      "num": 1
-    },
-    "002": {
-      "id": "002",
-      "name": "item02",
-      "money": "300",
-      "num": 1
-    },
-    "003": {
-      "id": "003",
-      "name": "item03",
-      "money": "400",
-      "num": 1
-    },
-    "004": {
-      "id": "004",
-      "name": "item04",
-      "money": "500",
-      "num": 1
+  // Firebaseからデータを取得する関数
+  const fetchBooks = async () => {
+    try {
+      const docRef = collection(db, 'items'); // "items"コレクションを参照
+      const querySnapshot = await getDocs(docRef);
+      const fetchedItems = querySnapshot.docs.map((doc) => doc.data().items); // items配列を取得
+      setitemdata(fetchedItems.flat()); // 配列内のデータをフラット化して保存
+      console.log("取得されたデータ:", fetchedItems.flat());
+    } catch (error) {
+      console.error("データの取得に失敗しました:", error);
     }
-  }
+  };
 
-  const handleSubmit = (
-    e: React.MouseEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  // アイテムの追加処理
+  async function handleSubmit(e: React.KeyboardEvent<HTMLInputElement>) {
     const itemInput = document.getElementById('itemid') as HTMLInputElement | null;
     const inputValue = itemInput?.value; // 入力値を取得
 
-    console.log(inputValue); // nullチェックを追加
-    if (inputValue && item[inputValue]) {
-      console.log(item[inputValue].id);
-      console.log(item[inputValue].name);
-      console.log(item[inputValue].money);
+    console.log("入力されたID:", inputValue);
 
-      const existingItemIndex = items.findIndex((i: any) => i.id === item[inputValue].id);
+    if (!inputValue) return; // 入力がない場合は終了
+
+    // Firebaseからデータを取得
+    await fetchBooks();
+    const foundItem = itemdata.find((item: any) => item.id === inputValue);
+
+    if (foundItem) {
+      const existingItemIndex = items.findIndex((i: any) => i.id === foundItem.id);
 
       if (existingItemIndex !== -1) {
-        // 既にアイテムが存在する場合、その数量を更新
+        // 既にアイテムが存在する場合、その数量を増加
         const updatedItems = [...items];
         updatedItems[existingItemIndex].num++;
         Setitems(updatedItems);
       } else {
         // 新しいアイテムを追加
-        Setitems([...items, item[inputValue]]);
+        Setitems([...items, { ...foundItem, num: 1 }]);
       }
 
-      console.log(items);
+      console.log("現在のアイテム:", items);
     } else {
       console.log('該当するアイテムがありません');
     }
-  }
+  };
 
-  function plusminus(inputValue: any, num: any) {
-    const existingItemIndex = items.findIndex((i: any) => i.id === item[inputValue].id);
-    if (inputValue && item[inputValue]) {
-      if (num == 0) {
-        const updatedItems = [...items];
-        if (updatedItems[existingItemIndex].num > 1) {
-          updatedItems[existingItemIndex].num--;
-        }
-        Setitems(updatedItems);
-      } else {
-        const updatedItems = [...items];
-        updatedItems[existingItemIndex].num++;
-        Setitems(updatedItems);
-      }
-    }
-
-  }
-
-  function cansel(inputValue: any) {
-    const existingItemIndex = items.findIndex((i: any) => i.id === item[inputValue].id);
-    if (inputValue && item[inputValue]) {
+  // 数量の増減
+  function plusminus(inputValue: string, num: number) {
+    const existingItemIndex = items.findIndex((i) => i.id === inputValue);
+    if (existingItemIndex !== -1) {
       const updatedItems = [...items];
-      updatedItems.splice(existingItemIndex, 1); // 'remove'を'splice'に変更
+      if (num === 0 && updatedItems[existingItemIndex].num > 1) {
+        updatedItems[existingItemIndex].num--;
+      } else if (num === 1) {
+        updatedItems[existingItemIndex].num++;
+      }
       Setitems(updatedItems);
     }
   }
 
+  // アイテムの取り消し
+  function cansel(inputValue: string) {
+    const existingItemIndex = items.findIndex((i) => i.id === inputValue);
+    if (existingItemIndex !== -1) {
+      const updatedItems = [...items];
+      updatedItems.splice(existingItemIndex, 1); // アイテムを配列から削除
+      Setitems(updatedItems);
+    }
+  }
+
+  // 合計金額の計算
   const Result = () => {
     let result = 0;
-    for (let i = 0; i < items.length; i++) { // item.lengthをitems.lengthに修正
-      let plus = items[i].money * items[i].num; // item[i]をitems[i]に修正
-      result += plus;
+    for (let i = 0; i < items.length; i++) {
+      result += parseInt(items[i].money) * items[i].num;
     }
-    return result; // 結果を返す
-  }
+    return result;
+  };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Enterキーでアイテムを追加
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing || e.key !== 'Enter') return;
-    handleSubmit(e);
-  }
+    await handleSubmit(e); // Enterキーが押されたらアイテムを追加
+  };
 
   return (
-    <div className="font-sans">
+    <div className="font-sans text-[#d4d4d4]">
       <Header />
-      <h1 className=" text-[3rem] text-center">商品</h1>
+      <Link href={"/setting/setitem"}>ページに戻る</Link>
+      <h1 className="text-[3rem] text-center">商品</h1>
       <div className="text-center">
         <input onKeyDown={handleKeyDown} className="text-black" id="itemid" type="text" />
       </div>
       <div className="w-full">
         {items.map((item: any, index: number) => (
           <div key={index} className="w-[80%] p-4 m-auto flex bg-[#373737] rounded-2xl border-2 border-[#474747] mb-1 h-[7rem]">
-            <div className=" w-full align-buttom">
+            <div className="w-full align-bottom">
               <p className="text-[30px] text-center mt-[1rem]">{item.name}</p>
             </div>
-
             <div className="m-auto flex">
               <div className="block w-[8rem]">
                 <p>単価:{item.money}円</p>
                 <p>数:{item.num}個</p>
-                <p>合計:{item.money * item.num}円</p>
+                <p>合計:{parseInt(item.money) * item.num}円</p>
               </div>
               <div className="font-bold">
                 <Button onClick={() => plusminus(item.id, 0)} id={item.id}>ー</Button>

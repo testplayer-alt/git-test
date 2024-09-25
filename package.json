@@ -9,13 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/style": "^0.8.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^6.1.1",
     "@radix-ui/react-slot": "^1.1.0",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "firebase": "^10.13.2",
     "lucide-react": "^0.441.0",
     "next": "14.2.7",
     "react": "^18",
     "react-dom": "^18",
+    "react-use": "^17.5.1",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
   },
