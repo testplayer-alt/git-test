@@ -4,7 +4,10 @@ export default function Header() {
     const router = useRouter();
     const [url, setUrl] = useState<string>(''); // URLを管理する状態を追加
     useEffect(() => {
-        setUrl(router.asPath.replace('/?dep=', '')); // URLを設定
+        const cleanedUrl = router.asPath
+            .replace('/?dep=', '')
+            .replace('/scan?dep=', ''); // '/scan?dep='を'/scan'に置き換え
+        setUrl(cleanedUrl); // URLを設定
     }, [router.asPath]);
     return <>
         <div className=" font-thin">

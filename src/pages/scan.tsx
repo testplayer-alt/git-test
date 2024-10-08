@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import Header from "./header";
 
 export default function Scan() {
     const [id, setid] = useState<any>();
@@ -179,6 +180,7 @@ export default function Scan() {
 
     return (
         <>
+            <Header />
             <App ref={childRef} />
             <Button onClick={() => clickButton(0)}>カートページ</Button>
             <Button onClick={() => clickButton(1)}>アイテム登録</Button>
