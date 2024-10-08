@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { App, ChildMethods } from "@/components/App";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Scan() {
     const [id, setid] = useState<any>();
@@ -130,6 +132,8 @@ export default function Scan() {
     return (
         <>
             <App ref={childRef} />
+            <Button><Link href="/">カートページ</Link></Button>
+            <Button><Link href="/setting/setitem">アイテム登録</Link></Button>
         </>
     );
 }

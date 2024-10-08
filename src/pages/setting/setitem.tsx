@@ -44,6 +44,7 @@ export default function Account() {
                 items: arrayUnion(data) // items配列に新しいアイテムを追加
             });
             console.log('アイテムを追加しました:', data);
+            alert('アイテムを追加しました');
         } catch (error) {
             console.error('アイテムの追加中にエラーが発生しました:', error);
         }
@@ -69,7 +70,8 @@ export default function Account() {
                     </div>
                 </div>
                 <App></App>
-                <Link href="/">ページに戻る</Link>
+                <Button><Link href="/">カートページ</Link></Button>
+                <Button><Link href="/scan">スキャンページ</Link></Button>
             </div>
         </>
     );

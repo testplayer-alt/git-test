@@ -111,7 +111,6 @@ export default function Home() {
   return (
     <div className="font-sans text-[#d4d4d4]">
       <Header />
-      <Link href={"/setting/setitem"}>ページに戻る</Link>
       <h1 className="text-[3rem] text-center">商品</h1>
       <div className="w-full">
         {items.map((item: any, index: number) => (
@@ -137,6 +136,8 @@ export default function Home() {
       <div className="w-[80%]">
         <p className="text-[50px] font-bold font-sans text-right">合計:{Result()}円</p>
       </div>
+      <Button><Link href="/setting/setitem">アイテム登録</Link></Button>
+      <Button><Link href="/scan">スキャンページ</Link></Button>
     </div>
   );
 }
