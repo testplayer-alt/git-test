@@ -1,17 +1,27 @@
-import { useState } from 'react';
 import { Scanner } from './Scanner';
 import { Alert, Box, Container, Stack, TextField, useMediaQuery, useTheme } from '@mui/material';
 import { useToast } from '../hooks/useToast';
+import { forwardRef, useImperativeHandle, useState } from "react";
 
-export const App = () => {
+export interface ChildMethods {
+    exitcode: () => void;
+}
+
+export const App = forwardRef<ChildMethods>((_, ref) => {
     const [codes, setCodes] = useState<string[]>([]); // 確実に配列として初期化
     const theme = useTheme();
     const matches = useMediaQuery(theme.breakpoints.up('md'));
     const [Toast, { handleOnClose, handleOnOpen, isOpen }] = useToast();
 
+    // 親コンポーネントから呼び出すメソッドを定義
+    useImperativeHandle(ref, () => ({
+        exitcode() {
+            setCodes([]); // codes を空にする
+        },
+    }));
+
     const handleReadCode = (result: any) => {
         const newCode = result.getText(); // 新しいコードを取得
-        console.log(newCode);
         setCodes([newCode]); // codesを新しいコードの配列に設定
         handleOnOpen(); // トーストを表示
     };
@@ -40,4 +50,4 @@ export const App = () => {
             </Toast>
         </Container>
     );
-};
+});

@@ -1,82 +1,103 @@
 import Header from "./header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
+import { onSnapshot } from "firebase/firestore"; // onSnapshotをインポート
+
 
 export default function Home() {
   let [items, Setitems] = useState<any[]>([]); // 表示されるアイテムのリスト
   const [itemdata, setitemdata] = useState<any[]>([]); // Firebaseから取得したアイテムデータ
+  const [update, setupdate] = useState<boolean>(false);
 
-  // Firebaseからデータを取得する関数
-  const fetchBooks = async () => {
-    try {
-      const docRef = collection(db, 'items'); // "items"コレクションを参照
-      const querySnapshot = await getDocs(docRef);
-      const fetchedItems = querySnapshot.docs.map((doc) => doc.data().items); // items配列を取得
-      setitemdata(fetchedItems.flat()); // 配列内のデータをフラット化して保存
-      console.log("取得されたデータ:", fetchedItems.flat());
-    } catch (error) {
-      console.error("データの取得に失敗しました:", error);
-    }
-  };
-
-  // アイテムの追加処理
-  async function handleSubmit(e: React.KeyboardEvent<HTMLInputElement>) {
-    const itemInput = document.getElementById('itemid') as HTMLInputElement | null;
-    const inputValue = itemInput?.value; // 入力値を取得
-
-    console.log("入力されたID:", inputValue);
-
-    if (!inputValue) return; // 入力がない場合は終了
-
-    // Firebaseからデータを取得
-    await fetchBooks();
-    const foundItem = itemdata.find((item: any) => item.id === inputValue);
-
-    if (foundItem) {
-      const existingItemIndex = items.findIndex((i: any) => i.id === foundItem.id);
-
-      if (existingItemIndex !== -1) {
-        // 既にアイテムが存在する場合、その数量を増加
-        const updatedItems = [...items];
-        updatedItems[existingItemIndex].num++;
-        Setitems(updatedItems);
-      } else {
-        // 新しいアイテムを追加
-        Setitems([...items, { ...foundItem, num: 1 }]);
+  useEffect(() => {
+    const getitems = async () => {
+      try {
+        const docRef = collection(db, 'cart');
+        const querySnapshot = await getDocs(docRef);
+        const fetchedItems = querySnapshot.docs.map((doc) => doc.data().items); // items配列を取得
+        setitemdata(fetchedItems.flat()); // 配列内のデータをフラット化して保存
+      } catch (error) {
+        console.error("データの取得に失敗しました:", error);
       }
-
-      console.log("現在のアイテム:", items);
-    } else {
-      console.log('該当するアイテムがありません');
     }
-  };
+    getitems();
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "cart", 'incart'), function (doc) { // 修正: doc()を使用して参照を取得
+      if (doc.metadata.hasPendingWrites) {
+        // ローカルの変更がある場合は無視
+        return;
+      }
+      const data = doc.data(); // データを取得
+      if (data) { // dataがundefinedでないことを確認
+        console.log("Server data: ", data);
+        Setitems(data.items); // Setitemsにdataを設定
+      }
+    });
+
+    return () => unsubscribe(); // クリーンアップ関数を追加
+  }, [Setitems]);
 
   // 数量の増減
-  function plusminus(inputValue: string, num: number) {
-    const existingItemIndex = items.findIndex((i) => i.id === inputValue);
-    if (existingItemIndex !== -1) {
-      const updatedItems = [...items];
-      if (num === 0 && updatedItems[existingItemIndex].num > 1) {
-        updatedItems[existingItemIndex].num--;
-      } else if (num === 1) {
-        updatedItems[existingItemIndex].num++;
+  async function plusminus(inputValue: string, num: number) {
+    // Firestoreのコレクション内の特定のドキュメントを参照
+    const docRef = doc(db, 'cart', 'incart');
+
+    // ドキュメントのデータを取得
+    const docSnapshot = await getDoc(docRef);
+    if (docSnapshot.exists()) {
+      const docData = docSnapshot.data();
+      const items = docData.items || [];
+
+      // 既存のアイテムを検索
+      const existingItemIndex = items.findIndex((i: any) => i.id === inputValue);
+
+      if (existingItemIndex !== -1) {
+        const currentItem = items[existingItemIndex];
+
+        // 数量を増減させるロジック
+        if (num === 0 && currentItem.num > 1) {
+          currentItem.num -= 1; // 数量を1減少
+        } else if (num === 1) {
+          currentItem.num += 1; // 数量を1増加
+        }
+
+        // 更新されたアイテムを反映した新しいitems配列を作成
+        const updatedItems = [...items];
+        updatedItems[existingItemIndex] = currentItem;
+        Setitems(updatedItems);
+
+        // Firestoreに更新されたitems配列を保存
+        await updateDoc(docRef, {
+          items: updatedItems
+        });
+
+        console.log(`アイテム ${inputValue} の数量を更新しました。新しい数量: ${currentItem.num}`);
+      } else {
+        console.log("該当するアイテムが見つかりませんでした");
       }
-      Setitems(updatedItems);
+    } else {
+      console.error("ドキュメントが存在しません");
     }
   }
 
-  // アイテムの取り消し
-  function cansel(inputValue: string) {
-    const existingItemIndex = items.findIndex((i) => i.id === inputValue);
-    if (existingItemIndex !== -1) {
-      const updatedItems = [...items];
-      updatedItems.splice(existingItemIndex, 1); // アイテムを配列から削除
-      Setitems(updatedItems);
-    }
+  // アイテムの取り消し関数
+  async function cansel(inputValue: string) {
+
+    const updatedItems = items.filter(item => item.id !== inputValue);
+    Setitems(updatedItems); // ローカル状態を更新
+    const docRef = doc(collection(db, 'cart'), 'incart');
+    setDoc(docRef, { items: updatedItems })
+      .catch((error) => {
+        console.error("データの削除に失敗しました:", error); // エラーハンドリング
+      });
+
   }
+
 
   // 合計金額の計算
   const Result = () => {
@@ -87,20 +108,11 @@ export default function Home() {
     return result;
   };
 
-  // Enterキーでアイテムを追加
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.nativeEvent.isComposing || e.key !== 'Enter') return;
-    await handleSubmit(e); // Enterキーが押されたらアイテムを追加
-  };
-
   return (
     <div className="font-sans text-[#d4d4d4]">
       <Header />
       <Link href={"/setting/setitem"}>ページに戻る</Link>
       <h1 className="text-[3rem] text-center">商品</h1>
-      <div className="text-center">
-        <input onKeyDown={handleKeyDown} className="text-black" id="itemid" type="text" />
-      </div>
       <div className="w-full">
         {items.map((item: any, index: number) => (
           <div key={index} className="w-[80%] p-4 m-auto flex bg-[#373737] rounded-2xl border-2 border-[#474747] mb-1 h-[7rem]">
