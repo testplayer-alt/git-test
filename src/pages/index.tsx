@@ -116,6 +116,26 @@ export default function Home() {
     return result;
   };
 
+  // ボタンをクリックしたときの処理
+  const clickButton = (pass: number) => {
+    let URL = "";
+    switch (pass) {
+      case 0:
+        URL = "/scan";
+        break;
+
+      case 1:
+        URL = "/setting/setitem";
+        break;
+      default:
+        break;
+    }
+    router.push({
+      pathname: URL,   //URL
+      query: { dep: Department } //検索クエリ
+    });
+  }
+
   return (
     <div className="font-sans text-[#d4d4d4]">
       <Header />
@@ -155,12 +175,8 @@ export default function Home() {
           合計:{Result()}円
         </p>
       </div>
-      <Button>
-        <Link href="/setting/setitem">アイテム登録</Link>
-      </Button>
-      <Button>
-        <Link href="/scan">スキャンページ</Link>
-      </Button>
+      <Button onClick={() => clickButton(0)}>スキャンページ</Button>
+      <Button onClick={() => clickButton(1)}>アイテム登録</Button>
     </div>
   );
 }

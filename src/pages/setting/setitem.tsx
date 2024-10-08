@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import { collection, getDocs, query, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { useRouter } from "next/router";
 
 export default function Account() {
+    const router = useRouter();
+    const Department = router.query.dep;
+    console.log("取得した部門:", Department);
     const Setitems = async () => {
         const id = document.getElementById('itemid') as HTMLInputElement | null;
         const itemid = id?.value; // 入力値を取得
@@ -14,6 +18,7 @@ export default function Account() {
         const itemname = name?.value; // 入力値を取得
         const money = document.getElementById('itemmoney') as HTMLInputElement | null;
         const itemmoney = money?.value; // 入力値を取得
+
 
         console.log(itemid);
         console.log(itemname);
@@ -50,6 +55,26 @@ export default function Account() {
         }
     }
 
+    // ボタンをクリックしたときの処理
+    const clickButton = (pass: number) => {
+        let URL = "";
+        switch (pass) {
+            case 0:
+                URL = "/";
+                break;
+
+            case 1:
+                URL = "/scan";
+                break;
+            default:
+                break;
+        }
+        router.push({
+            pathname: URL,   //URL
+            query: { dep: Department } //検索クエリ
+        });
+    }
+
     return (
         <>
             <div className="font-sans text-[#d4d4d4]">
@@ -70,8 +95,8 @@ export default function Account() {
                     </div>
                 </div>
                 <App></App>
-                <Button><Link href="/">カートページ</Link></Button>
-                <Button><Link href="/scan">スキャンページ</Link></Button>
+                <Button onClick={() => clickButton(0)}>カートページ</Button>
+                <Button onClick={() => clickButton(1)}>スキャンページ</Button>
             </div>
         </>
     );

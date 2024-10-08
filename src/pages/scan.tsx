@@ -157,11 +157,31 @@ export default function Scan() {
         return () => clearInterval(intervalId);
     }, [id, Department]);
 
+    // ボタンをクリックしたときの処理
+    const clickButton = (pass: number) => {
+        let URL = "";
+        switch (pass) {
+            case 0:
+                URL = "/";
+                break;
+
+            case 1:
+                URL = "/setting/setitem";
+                break;
+            default:
+                break;
+        }
+        router.push({
+            pathname: URL,   //URL
+            query: { dep: Department } //検索クエリ
+        });
+    }
+
     return (
         <>
             <App ref={childRef} />
-            <Button><Link href="/">カートページ</Link></Button>
-            <Button><Link href="/setting/setitem">アイテム登録</Link></Button>
+            <Button onClick={() => clickButton(0)}>カートページ</Button>
+            <Button onClick={() => clickButton(1)}>アイテム登録</Button>
         </>
     );
 }
