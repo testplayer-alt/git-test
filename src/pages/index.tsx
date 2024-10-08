@@ -1,11 +1,10 @@
-import Header from "./header";
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { collection, doc, getDocs, updateDoc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import Link from "next/link";
-import { onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import Header from "./header";
+import QRCode from "./qrcode";
 
 export default function Home() {
   const [items, Setitems] = useState<any[]>([]); // 表示されるアイテムのリスト
@@ -13,6 +12,7 @@ export default function Home() {
   const [update, setupdate] = useState<boolean>(false);
   const router = useRouter();
   const Department = router.query.dep; // URLから部門を取得
+  const [url, setUrl] = useState<string>(''); // URLを管理する状態を追加
   console.log("取得した部門:", Department);
 
   useEffect(() => {
@@ -136,6 +136,10 @@ export default function Home() {
     });
   }
 
+  useEffect(() => {
+    setUrl("https://reji-one.vercel.app/" + router.asPath); // URLを設定
+  }, [router.asPath]);
+
   return (
     <div className="font-sans text-[#d4d4d4]">
       <Header />
@@ -177,6 +181,10 @@ export default function Home() {
       </div>
       <Button onClick={() => clickButton(0)}>スキャンページ</Button>
       <Button onClick={() => clickButton(1)}>アイテム登録</Button>
+      <div className="border-2 w-[15rem] p-3">
+        <p className="text-center">スマートフォンからアクセス</p>
+        <div className=" w-fit m-auto border-2"><QRCode url={url} key={router.asPath} /></div>
+      </div>
     </div>
   );
 }
