@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { App, ChildMethods } from "@/components/App";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, updateDoc, arrayUnion, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 export default function Scan() {
     const [id, setid] = useState<any>();
@@ -12,6 +13,9 @@ export default function Scan() {
     const [isCooldown, setIsCooldown] = useState(false);
     const childRef = useRef<ChildMethods>(null);
     const [items, Setitems] = useState<any[]>([]);
+    const router = useRouter();
+    const Department = router.query.dep;
+    console.log("取得した部門:", Department);
 
     // 初期データ取得
     useEffect(() => {
@@ -28,7 +32,7 @@ export default function Scan() {
                 setitemdata(fetchedItems.flat());
                 console.log("取得したアイテムデータ:", fetchedItems.flat());
             } catch (error) {
-                console.error("データの取得に失敗しました.:", error);
+                console.error("データの取得に失敗しました:", error);
             }
         };
         fetchData();
@@ -36,33 +40,40 @@ export default function Scan() {
 
     // アイテムの更新処理
     const Update = async () => {
+        if (!Department) {
+            console.log("部門が未定義です。");
+            return;
+        }
+
         if (isCooldown || !id?.value) {
-            console.log("クールダウン中またはIDが無効です。更新をスキップします。");
+            //console.log("クールダウン中またはIDが無効です。更新をスキップします。");
             return;
         }
 
         setIsCooldown(true);
         setTimeout(() => {
             setIsCooldown(false);
-            console.log("クールダウン解除");
+            //console.log("クールダウン解除");
         }, 2500);
 
         const fetchBooks = async () => {
             try {
-
-                const docRef2 = collection(db, 'cart');
-                const querySnapshot2 = await getDocs(docRef2);
-                const fetchedItems2 = querySnapshot2.docs.map((doc) => doc.data().items || []);
-                const validItems2 = fetchedItems2.flat().filter(item => item !== undefined);
-                Setitems(validItems2);
-
+                console.log("最新のアイテム情報を取得中...");
+                const docRefitem = doc(db, 'cart', `${Department}`);
+                const querySnapshotitem = await getDoc(docRefitem);
+                const fetchedItemsitem = querySnapshotitem.data()?.items || []; // 修正: data()メソッドを使用
+                Setitems(fetchedItemsitem || []); // 修正: 空配列を返す
+                console.log("バーコード読み込み時に最新アイテムを取得:", fetchedItemsitem.flat());
+            } catch (error) {
+                console.error("データの取得に失敗しました:", error);
+            }
+            try {
                 console.log("最新のアイテム情報を取得中...");
                 const docRef = collection(db, 'items');
                 const querySnapshot = await getDocs(docRef);
                 const fetchedItems = querySnapshot.docs.map((doc) => doc.data().items || []);
                 setitemdata(fetchedItems.flat());
                 console.log("取得した最新アイテム:", fetchedItems.flat());
-                console.log("取得したカート内のアイテム:", validItems2);
             } catch (error) {
                 console.error("データの取得に失敗しました:", error);
             }
@@ -73,8 +84,8 @@ export default function Scan() {
 
     // アイテムの追加または更新
     useEffect(() => {
-        if (!id?.value) {
-            console.log("IDが無効か空です。");
+        if (!id?.value || !Department) {
+            console.log("IDまたは部門が無効か空です。");
             return;
         }
 
@@ -99,35 +110,47 @@ export default function Scan() {
         } else {
             console.log("該当するアイテムが見つかりませんでした。");
         }
-    }, [itemdata, id]);
+    }, [itemdata, id, Department]);
 
     // アイテムデータのデータベースへの保存
     useEffect(() => {
-        if (items.length > 0) {
+        if (items.length > 0 && Department) {
             console.log("データベースに保存するアイテム:", items);
-            const validItems = items.filter(item => item !== undefined);
+            const docRef = doc(db, 'cart', String(Department));
 
-            if (validItems.length > 0) {
-                const docRef = doc(collection(db, 'cart'), 'incart');
-                setDoc(docRef, { items: validItems })
-                    .then(() => {
-                        console.log("データが正常にデータベースに保存されました。");
-                    })
-                    .catch((error) => {
-                        console.error("データの保存に失敗しました:", error);
+            const saveItemsToFirestore = async () => {
+                try {
+
+                    // 更新されたアイテムリストをFirestoreに保存
+                    await updateDoc(docRef, {
+                        items: items
                     });
-            }
+                    console.log(items);
+                    console.log("データが正常に更新されました。");
+                } catch (error) {
+                    // ドキュメントが存在しない場合は新しいドキュメントを作成
+                    await setDoc(docRef, { items: items });
+                    console.log("新しいドキュメントが作成されました。");
+                }
+            };
+
+            saveItemsToFirestore();
         }
-    }, [items]);
+    }, [items, Department]);
 
     // Update を1秒間に10回実行
     useEffect(() => {
+        if (!Department) {
+            console.log("部門が未定義です。");
+            return;
+        }
+
         const intervalId = setInterval(() => {
             Update();
         }, 100); // 100msごとに実行
 
         return () => clearInterval(intervalId);
-    }, [id]);
+    }, [id, Department]);
 
     return (
         <>
