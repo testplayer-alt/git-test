@@ -3,7 +3,7 @@ import { App, ChildMethods } from "@/components/App";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export default function scan() {
+export default function Scan() {
     const [id, setid] = useState<any>();
     const inid = useRef<any>();
     const [itemdata, setitemdata] = useState<any[]>([]);

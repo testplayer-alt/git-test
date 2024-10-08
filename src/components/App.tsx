@@ -51,3 +51,4 @@ export const App = forwardRef<ChildMethods>((_, ref) => {
         </Container>
     );
 });
+App.displayName = 'App';
