@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { App, ChildMethods } from "@/components/App";
-import { collection, doc, getDocs, getDoc, updateDoc, arrayUnion, setDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,7 +10,7 @@ export default function Scan() {
     const [id, setid] = useState<any>();
     const inid = useRef<any>();
     const [itemdata, setitemdata] = useState<any[]>([]);
-    const [isCooldown, setIsCooldown] = useState(false);
+    const [isCooldown, setIsCooldown] = useState(false);  // クールダウン用のフラグ
     const childRef = useRef<ChildMethods>(null);
     const [items, Setitems] = useState<any[]>([]);
     const router = useRouter();
@@ -45,16 +45,16 @@ export default function Scan() {
             return;
         }
 
-        if (isCooldown || !id?.value) {
-            //console.log("クールダウン中またはIDが無効です。更新をスキップします。");
+        if (isCooldown) {
+            console.log("クールダウン中です。更新をスキップします。");
             return;
         }
 
-        setIsCooldown(true);
-        setTimeout(() => {
-            setIsCooldown(false);
-            //console.log("クールダウン解除");
-        }, 2500);
+        if (!id?.value) {
+            return;
+        }
+
+        setIsCooldown(true);  // クールダウンを開始
 
         const fetchBooks = async () => {
             try {
@@ -80,6 +80,12 @@ export default function Scan() {
         };
 
         await fetchBooks();
+
+        // 10秒後にクールダウン解除
+        setTimeout(() => {
+            setIsCooldown(false);  // クールダウン解除
+            console.log("クールダウン解除");
+        }, 2500);  // 10秒後にクールダウン解除
     };
 
     // アイテムの追加または更新
@@ -120,7 +126,6 @@ export default function Scan() {
 
             const saveItemsToFirestore = async () => {
                 try {
-
                     // 更新されたアイテムリストをFirestoreに保存
                     await updateDoc(docRef, {
                         items: items
@@ -138,7 +143,7 @@ export default function Scan() {
         }
     }, [items, Department]);
 
-    // Update を1秒間に10回実行
+    // Update を1秒間に1回実行（クールダウンの問題を解決するため、1000msに変更）
     useEffect(() => {
         if (!Department) {
             console.log("部門が未定義です。");
@@ -147,7 +152,7 @@ export default function Scan() {
 
         const intervalId = setInterval(() => {
             Update();
-        }, 100); // 100msごとに実行
+        }, 1000); // 1000msごとに実行
 
         return () => clearInterval(intervalId);
     }, [id, Department]);
