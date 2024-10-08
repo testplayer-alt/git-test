@@ -26,7 +26,7 @@ export default function Scan() {
                 setitemdata(fetchedItems.flat());
                 console.log("取得したアイテムデータ:", fetchedItems.flat());
             } catch (error) {
-                console.error("データの取得に失敗しました:", error);
+                console.error("データの取得に失敗しました.:", error);
             }
         };
         fetchData();
